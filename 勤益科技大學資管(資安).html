@@ -72,16 +72,63 @@
         .slider-track-active {
             background: linear-gradient(90deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.4) 100%);
         }
+
+        /* Google Translate Widget Override for Dark Theme */
+        #google_translate_element {
+            display: inline-block;
+        }
+        .goog-te-gadget {
+            font-family: 'Inter', sans-serif !important;
+            color: transparent !important;
+        }
+        /* Style the select box itself */
+        .goog-te-gadget .goog-te-combo {
+            background: #0f172a !important;
+            color: #38bdf8 !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 8px !important;
+            padding: 4px 12px !important;
+            outline: none !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.2s;
+        }
+        .goog-te-gadget .goog-te-combo:hover {
+            border-color: #38bdf8 !important;
+            background: #111a2e !important;
+        }
+        /* Hide Google logo branding elements and clean the UI */
+        .goog-logo-link, .goog-te-gadget span {
+            display: none !important;
+        }
+        iframe.goog-te-banner-frame {
+            display: none !important;
+        }
+        body {
+            top: 0px !important;
+        }
+        .goog-te-menu-frame {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 8px !important;
+        }
     </style>
 </head>
 <body class="text-slate-100 flex items-center justify-center p-4 md:p-8">
 
-<div class="w-full max-w-lg relative z-10" id="loginPage">
+<div class="w-full max-w-lg relative z-10 animate-fade-in" id="loginPage">
     <!-- Main Card Container -->
-    <div class="glass-panel rounded-2xl p-6 md:p-8 transition-all duration-300 cyber-glow" id="loginCard">
+    <div class="glass-panel rounded-2xl p-6 md:p-8 transition-all duration-300 cyber-glow relative" id="loginCard">
         
+        <!-- Premium Styled Google Language Selector on Top Right -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-900/80 px-2 py-1.5 rounded-lg border border-slate-800 text-xs z-50">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-cyber-primary"></i>
+            <div id="google_translate_element"></div>
+        </div>
+
         <!-- Header -->
-        <div class="text-center mb-6">
+        <div class="text-center mb-6 mt-4">
             <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-950 border border-cyber-primary text-cyber-primary mb-3 shadow-lg shadow-cyan-500/20">
                 <i data-lucide="shield-check" class="w-6 h-6"></i>
             </div>
@@ -158,7 +205,7 @@
         <div class="mt-6 p-4 rounded-xl border border-dashed border-cyber-primary/40 bg-slate-950/50 hidden" id="puzzleArea">
             <div class="flex items-center gap-1.5 text-cyber-primary text-xs font-semibold uppercase tracking-wider mb-3">
                 <i data-lucide="scan-eye" class="w-4 h-4"></i>
-                <span>第三重安全關卡：人機拖曳拼圖軌跡判定</span>
+                <span>第三重安全關關卡：人機拖曳拼圖軌跡判定</span>
             </div>
             
             <div class="relative w-full max-w-[300px] h-[200px] mx-auto bg-slate-900 rounded-lg overflow-hidden border border-slate-800">
@@ -174,27 +221,6 @@
                 </div>
                 <div class="w-12 h-10 bg-cyber-primary hover:bg-cyan-400 text-cyber-bg rounded-full absolute left-0 top-0 cursor-grab active:cursor-grabbing flex items-center justify-center shadow-lg shadow-cyan-500/20 touch-action-none z-30 transition-transform hover:scale-105" id="puzzleSlider">
                     <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Progress/Scanning Overlay -->
-        <div class="absolute inset-0 bg-slate-950/95 rounded-2xl flex flex-col items-center justify-center p-6 text-center opacity-0 pointer-events-none transition-all duration-300 z-40 border border-cyber-primary/30" id="progressOverlay">
-            <div class="w-16 h-16 relative flex items-center justify-center mb-6">
-                <!-- Glowing rotating ring -->
-                <div class="absolute inset-0 rounded-full border-4 border-slate-800/40 border-t-cyber-primary animate-spin"></div>
-                <i data-lucide="cpu" class="w-6 h-6 text-cyber-primary animate-pulse"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-1 text-center" id="progressTitle">正在執行多因子安全驗證</h3>
-            <p class="text-xs text-slate-400 mb-6 font-mono h-4 overflow-hidden text-center w-full" id="progressSub">初始化硬體密碼加速器...</p>
-            
-            <div class="w-full max-w-[280px] mx-auto">
-                <div class="flex justify-between items-center text-[10px] text-cyber-primary font-mono mb-1.5">
-                    <span id="progressStatus">INITIALIZING</span>
-                    <span id="progressPercent">0%</span>
-                </div>
-                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
-                    <div class="bg-gradient-to-r from-cyber-primary to-cyan-400 h-full rounded-full transition-all duration-75 ease-out" id="progressInnerBar" style="width: 0%;"></div>
                 </div>
             </div>
         </div>
@@ -228,16 +254,22 @@
 
 <!-- Dashboard Page (Post-Authentication Screen) -->
 <div class="w-full max-w-5xl hidden" id="dashboardPage">
-    <div class="glass-panel rounded-2xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl shadow-emerald-500/5">
+    <div class="glass-panel rounded-2xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl shadow-emerald-500/5 relative">
         
+        <!-- Dashboard Language Selector (Google Translate Syncs across elements) -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5 bg-slate-900/80 px-2 py-1.5 rounded-lg border border-slate-800 text-xs z-50">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-cyber-success"></i>
+            <div id="google_translate_dashboard"></div>
+        </div>
+
         <!-- Dashboard Top Banner -->
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-xl bg-emerald-950/50 border border-cyber-success text-cyber-success flex items-center justify-center">
                     <i data-lucide="unlock" class="w-6 h-6"></i>
                 </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <div class="pr-12 md:pr-0">
+                    <h2 class="text-xl font-bold text-white flex flex-wrap items-center gap-2">
                         <span>企業核心內部防衛中控台</span>
                         <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-cyber-success border border-emerald-500/30">已完全授權</span>
                     </h2>
@@ -245,7 +277,7 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 pt-2 md:pt-0">
                 <button onclick="copySessionToken()" class="text-xs bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                     <span>複製主憑證 Token</span>
@@ -385,48 +417,6 @@
 
     // Init Icons
     lucide.createIcons();
-
-    function runProgressAnimation(title, messages, duration, onComplete) {
-        const overlay = document.getElementById('progressOverlay');
-        const titleEl = document.getElementById('progressTitle');
-        const subEl = document.getElementById('progressSub');
-        const percentEl = document.getElementById('progressPercent');
-        const barEl = document.getElementById('progressInnerBar');
-        const statusEl = document.getElementById('progressStatus');
-        
-        titleEl.innerText = title;
-        overlay.classList.remove('opacity-0', 'pointer-events-none');
-        overlay.classList.add('opacity-100', 'pointer-events-auto');
-        
-        let start = null;
-        const animate = (timestamp) => {
-            if (!start) start = timestamp;
-            const elapsed = timestamp - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const percent = Math.floor(progress * 100);
-            
-            percentEl.innerText = `${percent}%`;
-            barEl.style.width = `${percent}%`;
-            
-            const msgIndex = Math.min(Math.floor(progress * messages.length), messages.length - 1);
-            if (messages[msgIndex] && subEl.innerText !== messages[msgIndex]) {
-                subEl.innerText = messages[msgIndex];
-                statusEl.innerText = messages[msgIndex].split(' ')[0] || "SCANNING";
-                writeLog(`[PROGRESS] ${messages[msgIndex]}`);
-            }
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                setTimeout(() => {
-                    overlay.classList.add('opacity-0', 'pointer-events-none');
-                    overlay.classList.remove('opacity-100', 'pointer-events-auto');
-                    onComplete();
-                }, 300);
-            }
-        };
-        requestAnimationFrame(animate);
-    }
 
     // High Tech fallback dynamic grid generator for Canvas backdrops
     function generateTechMatrix(canvas) {
@@ -619,7 +609,7 @@
         if (sqlInjectionRegex.test(u) || sqlInjectionRegex.test(p) || xssRegex.test(u) || xssRegex.test(p)) {
             triggerShakeEffect(['inputUser', 'inputPass']);
             writeLog("防禦系統：主動阻斷惡意程式注入！本次攻擊已記錄。", true);
-            openAlert("🚨 檢測到高危資安攻擊 (WAF)", 
+            openAlert("🚨 偵測到高危資安攻擊 (WAF)", 
                 `系統底層主動攔截非法語法：<br><code class="text-cyber-danger font-mono block mt-2 text-xs bg-slate-900 p-2 rounded">Payload: SQLi / Script-Injection Signature Detected</code><br><br>您的客戶端 IP 與行為指紋特徵已送至中心存證並通報。`
             );
             return; 
@@ -628,22 +618,9 @@
         if (u === "admin" && p === "123456") {
             passwordFailCount = 0; 
             document.getElementById('submitBtn').style.display = "none";
-            
-            runProgressAnimation(
-                "憑證比對與安全通道建立中",
-                [
-                    "SECURITY Checking local credentials...",
-                    "DECRYPTING Extracting sha-256 signatures...",
-                    "AUDITING Analyzing background entropy...",
-                    "ESTABLISHING Initializing multi-factor framework..."
-                ],
-                1500,
-                () => {
-                    writeLog("關卡一通過。本機帳號密碼對齊成功。正在呼叫動態人機多重檢驗機制...");
-                    generateCaptchaCode();
-                    codeArea.classList.remove('hidden');
-                }
-            );
+            writeLog("關卡一通過。本機帳號密碼對齊成功。正在呼叫動態人機多重檢驗機制...");
+            generateCaptchaCode();
+            codeArea.classList.remove('hidden');
         } else {
             passwordFailCount++;
             triggerShakeEffect(['inputUser', 'inputPass']);
@@ -713,21 +690,9 @@
         const userInp = document.getElementById('codeInputField').value.trim();
         if (userInp === currentCorrectCode) {
             codeArea.classList.add('hidden');
-            
-            runProgressAnimation(
-                "抗噪隨機碼二重核驗中",
-                [
-                    "VERIFYING Aligning digit pattern blocks...",
-                    "DECODING Parsing optical noise parameters...",
-                    "SUCCESS Channel authentication confirmed!"
-                ],
-                1200,
-                () => {
-                    writeLog("關卡二核對無誤。第二重多因子校對完成！");
-                    puzzleArea.classList.remove('hidden');
-                    initPuzzle(); 
-                }
-            );
+            writeLog("關卡二核對無誤。第二重多因子校對完成！");
+            puzzleArea.classList.remove('hidden');
+            initPuzzle(); 
         } else {
             triggerShakeEffect(['codeInputField']);
             writeLog("動態干擾碼比對失敗！請輸入新一組認證碼。", true);
@@ -842,24 +807,14 @@
         
         if (matchError <= 6) {
             puzzleArea.classList.add('hidden');
+            writeLog("行為辨識審核：拖曳物理數據分析完成... 核准登入！");
             
-            runProgressAnimation(
-                "端點物理軌跡行為核對中",
-                [
-                    "COLLECTING Fetching drag vector points...",
-                    "ANALYZING Auditing velocity variance (Jitter)...",
-                    "BIOMETRICS Mapping mouse movement curve...",
-                    "GENERATING Packing OAuth session session_tokens...",
-                    "AUTHORIZING Establishing secure handshakes..."
-                ],
-                2000,
-                () => {
-                    writeLog("行為辨識審核：拖曳物理數據分析完成... 核准登入！");
-                    loginPage.classList.add('hidden'); 
-                    dashboardPage.classList.remove('hidden'); 
-                    populateDashboardLogs();
-                }
-            );
+            // Redirect simulation
+            setTimeout(() => { 
+                loginPage.classList.add('hidden'); 
+                dashboardPage.classList.remove('hidden'); 
+                populateDashboardLogs();
+            }, 500);
         } else {
             triggerShakeEffect([]); 
             writeLog("拖曳比對失敗！軌跡不吻合。", true);
@@ -922,6 +877,30 @@
         puzzleArea.classList.add('hidden'); 
         clearErrors();
         writeLog("管理員主動安全離線，連線對話已銷毀。");
+    }
+
+    // Dynamic initialization of custom styled Google Translate Widget
+    function googleTranslateElementInit() {
+        // Init for login page container
+        new google.translate.TranslateElement({
+            pageLanguage: 'zh-TW',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+        }, 'google_translate_element');
+
+        // Init for dashboard container
+        new google.translate.TranslateElement({
+            pageLanguage: 'zh-TW',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+        }, 'google_translate_dashboard');
+    }
+
+    // Append Google translation core scripts dynamically on document load
+    window.onload = function() {
+        const script = document.createElement('script');
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        document.head.appendChild(script);
     }
 </script>
 </body>
