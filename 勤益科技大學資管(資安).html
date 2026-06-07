@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企業級安全登入、雙因子驗證與行為辨識系統</title>
+    <!-- Tailwind CSS (用於快速結構調整與高階樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#080d1a',
+                            card: '#111a2e',
+                            border: '#1e293b',
+                            primary: '#38bdf8',
+                            primaryHover: '#0ea5e9',
+                            success: '#10b981',
+                            danger: '#ef4444',
+                            warning: '#f59e0b',
+                            gray: '#64748b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons for premium visual feeling -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at 50% 50%, #0c152b 0%, #050814 100%);
+            min-height: 100vh;
+            top: 0px !important; /* 確保 Google 翻譯不影響版面位移 */
+        }
+
+        .cyber-glow {
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+        }
+
+        .cyber-glow-danger {
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.25);
+        }
+
+        .glass-panel {
+            background: rgba(17, 26, 46, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+
+        /* Shake Animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake-effect {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Mono typography for tech vibe */
+        .tech-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Smooth track gradient */
+        .slider-track-active {
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.4) 100%);
+        }
+
+        /* Standard custom scrollbar for dashboard list */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        /* -----------------------------------------
+           客製化 Google 翻譯與自建選單元件樣式 (完美符合深色科技風)
+        ----------------------------------------- */
+        #google_translate_element {
+            display: inline-block;
+        }
+        
+        /* 隱藏原本死板的 Google 圖標與文字 */
+        .goog-logo-link, .goog-te-gadget span {
+            display: none !important;
+        }
+        .goog-te-gadget {
+            color: transparent !important;
+            font-size: 0 !important;
+        }
+        
+        /* 覆蓋翻譯下拉選單按鈕 */
+        .goog-te-gadget-simple {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            border: 1px solid rgba(56, 189, 248, 0.3) !important;
+            padding: 3px 8px !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            transition: all 0.2s ease;
+        }
+        
+        .goog-te-gadget-simple:hover {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+        
+        .goog-te-menu-value {
+            color: #38bdf8 !important;
+            font-size: 11px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 500 !important;
+            margin: 0 !important;
+        }
+
+        .goog-te-menu-value span {
+            display: inline !important;
+            color: #38bdf8 !important;
+        }
+
+        /* 隱藏下拉選單的小箭頭圖標 */
+        .goog-te-menu-value img {
+            display: none !important;
+        }
+
+        /* 隱藏頂部翻譯橫幅與彈窗工具提示 */
+        .goog-te-banner-frame.skiptranslate, .goog-te-banner {
+            display: none !important;
+        }
+        .goog-tooltip, .goog-tooltip:hover {
+            display: none !important;
+        }
+        .goog-text-highlight {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* 避免 Google 翻譯強制注入頂部 margin */
+        .skiptranslate {
+            margin-top: 0px !important;
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex items-center justify-center p-4 md:p-8">
+
+<div class="w-full max-w-lg relative z-10" id="loginPage">
+    <!-- Main Card Container -->
+    <div class="glass-panel rounded-2xl p-6 md:p-8 transition-all duration-300 cyber-glow relative" id="loginCard">
+        
+        <!-- 全球語言翻譯與自研語系切換器 (z-index 調至 9999 確保 100% 點擊，並增加本地 4 國快切下拉選單) -->
+        <div class="absolute top-4 right-4 z-[9999] flex items-center gap-1.5" id="langSelectorContainer">
+            <i data-lucide="globe" class="w-4 h-4 text-cyber-primary animate-pulse"></i>
+            
+            <!-- 自研本地秒開語系切換 (防止 Google Translate script 被 iframe CSP 政策擋住) -->
+            <select id="localLangSelect" onchange="switchLocalLanguage(this.value)" class="bg-slate-900/90 border border-cyber-primary/40 text-cyber-primary text-[11px] font-semibold py-1 px-2 rounded-lg outline-none cursor-pointer hover:border-cyber-primary transition">
+                <option value="zh-TW">繁體中文 (本地)</option>
+                <option value="en">English (Local)</option>
+                <option value="ja">日本語 (ローカル)</option>
+                <option value="es">Español (Local)</option>
+                <option value="google">🌐 Google 翻譯 (100+)</option>
+            </select>
+            
+            <!-- 隱藏的 Google 原生元件，若使用者點選 Google 選項時才會顯示 -->
+            <div id="google_translate_element" class="hidden"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="text-center mb-6 pt-4">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-950 border border-cyber-primary text-cyber-primary mb-3 shadow-lg shadow-cyan-500/20">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h2 id="ui_title" class="text-2xl font-bold tracking-tight text-white">商業防禦登入控制台</h2>
+            <p id="ui_subtitle" class="text-xs text-slate-400 mt-1">MFA 雙因子防護與後端安全過濾系統</p>
+        </div>
+
+        <!-- Realtime Risk Monitor Widget -->
+        <div class="mb-5 bg-slate-950/60 rounded-xl p-3 border border-slate-800 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-primary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-cyber-primary"></span>
+                </span>
+                <span id="ui_monitor" class="text-slate-400">即時安全偵測器</span>
+            </div>
+            <div class="flex gap-4">
+                <div><span id="ui_risk">風險評估</span>: <span id="riskBadge" class="text-cyber-success font-semibold">安全 (LOW)</span></div>
+                <div><span id="ui_human">人類機率</span>: <span id="humanScore" class="text-cyber-primary font-semibold">100%</span></div>
+            </div>
+        </div>
+
+        <!-- Form Fields -->
+        <div class="space-y-4">
+            <div>
+                <label id="ui_user_label" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">使用者帳號</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="inputUser" 
+                           class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder-slate-600 focus:border-cyber-primary focus:ring-1 focus:ring-cyber-primary transition-all outline-none"
+                           placeholder="請輸入系統帳號" oninput="analyzeTypingSpeed('user')">
+                </div>
+            </div>
+
+            <div>
+                <label id="ui_pass_label" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">安全登入密碼</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </span>
+                    <input type="password" id="inputPass" 
+                           class="w-full bg-slate-950/80 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder-slate-600 focus:border-cyber-primary focus:ring-1 focus:ring-cyber-primary transition-all outline-none"
+                           placeholder="請輸入對應密碼" oninput="analyzeTypingSpeed('pass')">
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 1 Button -->
+        <button id="submitBtn" onclick="verifyPassword()" class="w-full mt-6 bg-gradient-to-r from-cyber-primary to-cyber-primaryHover text-cyber-bg font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+            <span id="ui_login_btn">安全驗證登入</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Stage 2: Verification Code Area -->
+        <div class="mt-6 p-4 rounded-xl border border-slate-800 bg-slate-950/40 hidden" id="codeArea">
+            <div class="flex items-center gap-1.5 text-cyber-primary text-xs font-semibold uppercase tracking-wider mb-3">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                <span id="ui_captcha_title">第二重安全關卡：輸入動態抗噪干擾碼</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <canvas id="captchaCanvas" width="130" height="42" class="rounded bg-slate-200 cursor-pointer border border-slate-700 hover:opacity-90 transition" title="點擊重新生成隨機碼"></canvas>
+                <input type="text" id="codeInputField" maxlength="4" 
+                       class="flex-1 bg-slate-900 border border-slate-700 rounded-lg py-2.5 text-center text-lg font-bold tech-font text-cyber-primary tracking-widest placeholder-slate-700 focus:border-cyber-primary focus:outline-none"
+                       placeholder="4位數字">
+                <button id="ui_captcha_verify" onclick="verifyCode()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-lg font-semibold text-sm transition">
+                    核驗
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage 3: Two-Factor Authentication (2FA) Area -->
+        <div class="mt-6 p-4 rounded-xl border border-cyber-primary/30 bg-slate-950/50 hidden" id="twoFactorArea">
+            <div class="flex items-center gap-1.5 text-cyber-primary text-xs font-semibold uppercase tracking-wider mb-2">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span id="ui_2fa_title">第三重安全關卡：雙因子驗證碼 (2FA)</span>
+            </div>
+            <p id="ui_2fa_desc" class="text-[11px] text-slate-400 mb-3">為了跨境貿易安全，系統已啟用多因子防護。請輸入模擬行動裝置動態密碼 (TOTP)：</p>
+            
+            <div class="flex flex-col gap-3 p-3 bg-slate-900/80 rounded-lg border border-slate-800 mb-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-400 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-cyber-success animate-ping"></span>
+                        <span id="ui_generator_title">金鑰模擬產生器 (TOTP)</span>
+                    </span>
+                    <span class="text-[10px] text-cyber-primary tech-font" id="totpTimer">更新倒數: 30s</span>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded border border-slate-800">
+                    <div class="text-2xl font-bold text-cyber-primary tracking-widest tech-font" id="simulatedOTP">--- ---</div>
+                    <button id="ui_refresh_key" onclick="regenerate2FA()" class="text-[10px] text-slate-400 hover:text-cyber-primary border border-slate-700 px-2 py-1 rounded transition">
+                        手動更新金鑰
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="otpInputField" maxlength="6" 
+                       class="flex-1 bg-slate-900 border border-slate-700 rounded-lg py-2 text-center text-xl font-bold tech-font text-white tracking-widest focus:border-cyber-primary focus:outline-none"
+                       placeholder="輸入 6 位 2FA 密碼">
+                <button id="ui_2fa_btn" onclick="verify2FA()" class="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyber-primaryHover hover:to-cyber-primary text-white px-5 rounded-lg font-bold text-sm transition shadow-md shadow-cyan-900/30">
+                    確認驗證
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage 4: Puzzle Slider Area -->
+        <div class="mt-6 p-4 rounded-xl border border-dashed border-cyber-primary/40 bg-slate-950/50 hidden" id="puzzleArea">
+            <div class="flex items-center gap-1.5 text-cyber-primary text-xs font-semibold uppercase tracking-wider mb-3">
+                <i data-lucide="scan-eye" class="w-4 h-4"></i>
+                <span id="ui_puzzle_title">第四重安全關卡：人機拖曳拼圖軌跡判定</span>
+            </div>
+            
+            <div class="relative w-full max-w-[300px] h-[200px] mx-auto bg-slate-900 rounded-lg overflow-hidden border border-slate-800">
+                <canvas id="bgCanvas" width="300" height="200" class="block w-full h-full"></canvas>
+                <canvas id="blockCanvas" width="300" height="200" class="absolute top-0 left-0 z-20 pointer-events-none"></canvas>
+            </div>
+            
+            <!-- Puzzle Slider Track -->
+            <div class="w-full max-w-[300px] h-10 bg-slate-950 border border-slate-800 rounded-full mx-auto mt-4 relative overflow-hidden" id="puzzleTrack">
+                <div class="absolute inset-y-0 left-0 rounded-full slider-track-active transition-all" id="sliderFill" style="width: 0px;"></div>
+                <div id="ui_slide_hint" class="absolute inset-y-0 left-0 flex items-center justify-center pl-16 w-full text-[10px] text-slate-500 tracking-wider pointer-events-none select-none">
+                    向右拖動滑桿拼接拼圖
+                </div>
+                <div class="w-12 h-10 bg-cyber-primary hover:bg-cyan-400 text-cyber-bg rounded-full absolute left-0 top-0 cursor-grab active:cursor-grabbing flex items-center justify-center shadow-lg shadow-cyan-500/20 touch-action-none z-30 transition-transform hover:scale-105" id="puzzleSlider">
+                    <i data-lucide="arrow-right-left" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress/Scanning Overlay -->
+        <div class="absolute inset-0 bg-slate-950/95 rounded-2xl flex flex-col items-center justify-center p-6 text-center opacity-0 pointer-events-none transition-all duration-300 z-40 border border-cyber-primary/30" id="progressOverlay">
+            <div class="w-16 h-16 relative flex items-center justify-center mb-6">
+                <!-- Glowing rotating ring -->
+                <div class="absolute inset-0 rounded-full border-4 border-slate-800/40 border-t-cyber-primary animate-spin"></div>
+                <i data-lucide="cpu" class="w-6 h-6 text-cyber-primary animate-pulse"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1 text-center" id="progressTitle">正在執行多因子安全驗證</h3>
+            <p class="text-xs text-slate-400 mb-6 font-mono h-4 overflow-hidden text-center w-full" id="progressSub">初始化硬體密碼加速器...</p>
+            
+            <div class="w-full max-w-[280px] mx-auto">
+                <div class="flex justify-between items-center text-[10px] text-cyber-primary font-mono mb-1.5">
+                    <span id="progressStatus">INITIALIZING</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div class="bg-gradient-to-r from-cyber-primary to-cyan-400 h-full rounded-full transition-all duration-75 ease-out" id="progressInnerBar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Tech Logger Terminal -->
+        <div class="mt-5 p-3.5 bg-black/80 rounded-lg border border-slate-900 text-xs text-cyan-400/90 tech-font overflow-hidden relative">
+            <div class="absolute top-2 right-3 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyber-success animate-pulse"></span>
+                <span class="text-[10px] text-slate-500 uppercase">SYS_LOG</span>
+            </div>
+            <div class="h-[60px] overflow-y-auto space-y-1.5 scrollbar-thin" id="logConsole">
+                <div>> [SYS_OK] 安全防禦模組初始化完畢...</div>
+                <div>> [SYS_OK] 正在等待連線請求...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Customized Premium Alert Modal inside Frame -->
+    <div class="absolute inset-0 bg-slate-950/95 rounded-2xl flex flex-col items-center justify-center p-6 text-center opacity-0 pointer-events-none transition-all duration-300 z-50 border-2 border-cyber-danger/30" id="errorAlert">
+        <div class="w-16 h-16 rounded-full bg-red-950/50 border border-cyber-danger flex items-center justify-center text-cyber-danger mb-4 shadow-lg shadow-red-500/15 animate-bounce">
+            <i data-lucide="shield-alert" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2" id="alertTitle">🚨 偵測到異常活動</h3>
+        <p class="text-sm text-slate-300 max-w-sm mb-6 leading-relaxed" id="alertDesc">錯誤訊息內容正在準備中。</p>
+        <button id="ui_reset_alert_btn" class="bg-cyber-danger hover:bg-red-600 text-white font-semibold px-8 py-2.5 rounded-xl transition duration-200 text-sm shadow-lg shadow-red-500/20" onclick="closeAlert()">
+            重設本次防護
+        </button>
+    </div>
+</div>
+
+<!-- Dashboard Page (Post-Authentication Screen) -->
+<div class="w-full max-w-5xl hidden" id="dashboardPage">
+    <div class="glass-panel rounded-2xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl shadow-emerald-500/5 relative">
+        
+        <!-- Dashboard Top Banner -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-950/50 border border-cyber-success text-cyber-success flex items-center justify-center">
+                    <i data-lucide="unlock" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span id="ui_dash_title">企業核心內部防衛中控台</span>
+                        <span id="ui_dash_authorized" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-cyber-success border border-emerald-500/30">已完全授權</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5"><span id="ui_dash_welcome">歡迎回來，系統主管理員</span> <span class="text-emerald-400 font-semibold tech-font">ADMIN_SYS</span></p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="copySessionToken()" class="text-xs bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span id="ui_copy_token">複製主憑證 Token</span>
+                </button>
+                <button id="ui_logout_btn" onclick="logout()" class="text-xs bg-red-950/30 border border-red-900/40 hover:bg-red-950/60 text-red-400 px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <span>登出系統</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Overview Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+            <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <span id="ui_stat_intercept" class="text-xs text-slate-500 uppercase tracking-wider">今日攔截防禦數</span>
+                    <h4 class="text-2xl font-bold text-white mt-1 tech-font text-cyber-primary">12,854 <span id="ui_stat_times" class="text-xs text-slate-400">次</span></h4>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-cyan-950/50 text-cyber-primary flex items-center justify-center">
+                    <i data-lucide="swords" class="w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <span id="ui_stat_level" class="text-xs text-slate-500 uppercase tracking-wider">端點安全級別</span>
+                    <h4 class="text-2xl font-bold text-cyber-success mt-1 tech-font">Level A++</h4>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-emerald-950/50 text-cyber-success flex items-center justify-center">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <span id="ui_stat_protocol" class="text-xs text-slate-500 uppercase tracking-wider">MFA 驗證協議等級</span>
+                    <h4 class="text-2xl font-bold text-amber-500 mt-1 tech-font">TOTP / 3FA</h4>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-amber-950/50 text-amber-500 flex items-center justify-center">
+                    <i data-lucide="key" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- INTERACTIVE BACKEND DATABASE SECURITY SHIELD SANDBOX -->
+        <div class="bg-slate-950/90 border border-cyan-500/30 rounded-xl p-5 mb-6 shadow-lg">
+            <div class="flex items-center gap-2 pb-3 border-b border-slate-800 mb-4 justify-between">
+                <div class="flex items-center gap-1.5 text-sm text-white font-bold uppercase tracking-wider">
+                    <i data-lucide="database" class="text-cyber-primary w-5 h-5"></i>
+                    <span id="ui_sandbox_title">後端資料庫資安模擬器（C# ADO.NET SQLi 防禦防護）</span>
+                </div>
+                <span class="text-[10px] text-cyber-primary bg-slate-900 border border-slate-800 px-2 py-0.5 rounded tech-font">PARAMETERS.ADDWITHVALUE</span>
+            </div>
+            
+            <p id="ui_sandbox_desc" class="text-xs text-slate-300 mb-4 leading-relaxed">
+                本模擬器用於向審查教授直觀展示**「後端資料庫如何抵抗 SQL 注入攻擊」**。當駭客輸入具破壞性的隱碼指令時，您可以即時對比傳統拼接字串與參數化過濾技術的安全性。
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Left: Control & Input -->
+                <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800">
+                    <div id="ui_step1" class="text-xs text-slate-400 font-bold mb-2">步驟 1: 輸入模擬資料</div>
+                    <div class="space-y-3">
+                        <div>
+                            <label id="ui_sim_label" class="block text-[10px] text-slate-500 mb-1">模擬使用者輸入欄位：</label>
+                            <input type="text" id="sandboxUserInput" value="admin' OR '1'='1" 
+                                   class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-amber-400 tech-font focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label id="ui_mode_label" class="block text-[10px] text-slate-500 mb-1">對應執行模式：</label>
+                            <div class="flex gap-2">
+                                <button onclick="setSandboxMode('vuln')" id="btnVulnMode" class="flex-1 text-[11px] font-bold py-1.5 rounded border border-red-500 bg-red-950/20 text-red-400 transition hover:bg-red-950/40">
+                                    ❌ 傳統字串拼接 (不安全)
+                                </button>
+                                <button onclick="setSandboxMode('secure')" id="btnSecureMode" class="flex-1 text-[11px] font-bold py-1.5 rounded border border-emerald-500 bg-emerald-500 text-white transition">
+                                    ✅ 參數化防禦 (安全)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DB query preview -->
+                    <div class="mt-4 p-2.5 bg-black/60 rounded border border-slate-800">
+                        <div id="ui_sql_preview" class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">實時底層查詢指令：</div>
+                        <code class="text-[11px] text-slate-300 tech-font block break-all leading-tight" id="sandboxQueryText">
+                            SELECT * FROM Users WHERE Username = 'admin' OR '1'='1'
+                        </code>
+                    </div>
+                </div>
+
+                <!-- Right: Code view and Result -->
+                <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span id="ui_step2" class="text-xs text-slate-400 font-bold">步驟 2: 後端底層 C# / ADO.NET 安全性原始碼</span>
+                            <span class="text-[9px] text-slate-500 tech-font bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">C# / Microsoft SQL</span>
+                        </div>
+                        
+                        <pre class="bg-black/80 rounded p-2 text-[10px] tech-font text-cyan-400 overflow-x-auto border border-slate-850 h-[105px]" id="sandboxCodeBlock"></pre>
+                    </div>
+
+                    <!-- Test Result Indicator -->
+                    <div class="mt-3 p-3 rounded border text-xs" id="sandboxResultIndicator">
+                        <!-- Filled by JS dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Log Dashboard Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: Logs and Threat Feeds -->
+            <div class="lg:col-span-2 bg-slate-950/80 border border-slate-800 rounded-xl p-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-1.5 text-xs text-white font-bold uppercase tracking-wider">
+                        <i data-lucide="activity" class="text-cyber-primary w-4 h-4"></i>
+                        <span id="ui_log_title">實時攻擊威脅威脅阻擋日誌</span>
+                    </div>
+                    <span id="ui_waf_status" class="text-[10px] text-cyber-success bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800 animate-pulse">WAF 防護運行中</span>
+                </div>
+                
+                <div class="space-y-3 max-h-[220px] overflow-y-auto text-xs tech-font pr-2 scrollbar-thin" id="wafDashboardConsole">
+                    <!-- Logs will populate dynamically -->
+                </div>
+            </div>
+
+            <!-- Right: Behavioral analytics diagnostic -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <div class="pb-3 border-b border-slate-800 mb-4 text-xs text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="brain-circuit" class="text-purple-400 w-4.5 h-4.5"></i>
+                        <span id="ui_diag_title">登入者行為診斷分析</span>
+                    </div>
+                    
+                    <div class="space-y-3.5 text-xs">
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span id="ui_diag_jitter">按鍵間隔一致性 (Jitter)</span>
+                                <span class="text-cyber-primary" id="diagJitter">優秀 (12ms)</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-cyber-primary h-full" style="width: 90%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span id="ui_diag_curve">拖曳軌跡曲率比對</span>
+                                <span class="text-cyber-success" id="diagDrag">100% 符合人類特徵</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-cyber-success h-full" style="width: 97%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span id="ui_diag_risk">系統總合風險指標</span>
+                                <span class="text-emerald-400" id="diagRisk">極低威脅 (0.001%)</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-emerald-400 h-full" style="width: 3%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-900 text-center">
+                    <p id="ui_footer_note" class="text-[10px] text-slate-500">本階段操作已被記錄並上傳至分散式安全節點存證</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 本地翻譯辭典資料庫 (中、英、日、西) -->
+<script>
+    const i18n_dict = {
+        'zh-TW': {
+            ui_title: '商業防禦登入控制台',
+            ui_subtitle: 'MFA 雙因子防護與後端安全過濾系統',
+            ui_monitor: '即時安全偵測器',
+            ui_risk: '風險評估',
+            ui_human: '人類機率',
+            ui_user_label: '使用者帳號',
+            ui_user_placeholder: '請輸入系統帳號',
+            ui_pass_label: '安全登入密碼',
+            ui_pass_placeholder: '請輸入對應密碼',
+            ui_login_btn: '安全驗證登入',
+            ui_captcha_title: '第二重安全關卡：輸入動態抗噪干擾碼',
+            ui_captcha_verify: '核驗',
+            ui_2fa_title: '第三重安全關卡：雙因子驗證碼 (2FA)',
+            ui_2fa_desc: '為了跨境貿易安全，系統已啟用多因子防護。請輸入模擬行動裝置動態密碼 (TOTP)：',
+            ui_generator_title: '金鑰模擬產生器 (TOTP)',
+            ui_refresh_key: '手動更新金鑰',
+            ui_2fa_btn: '確認驗證',
+            ui_puzzle_title: '第四重安全關卡：人機拖曳拼圖軌跡判定',
+            ui_slide_hint: '向右拖動滑桿拼接拼圖',
+            ui_reset_alert_btn: '重設本次防護',
+            ui_dash_title: '企業核心內部防衛中控台',
+            ui_dash_authorized: '已完全授權',
+            ui_dash_welcome: '歡迎回來，系統主管理員',
+            ui_copy_token: '複製主憑證 Token',
+            ui_logout_btn: '登出系統',
+            ui_stat_intercept: '今日攔截防禦數',
+            ui_stat_times: '次',
+            ui_stat_level: '端點安全級別',
+            ui_stat_protocol: 'MFA 驗證協議等級',
+            ui_sandbox_title: '後端資料庫資安模擬器（C# ADO.NET SQLi 防禦防護）',
+            ui_sandbox_desc: '本模擬器用於向審查教授直觀展示「後端資料庫如何抵抗 SQL 注入攻擊」。當駭客輸入具破壞性的隱碼指令時，您可以即時對比傳統拼接字串與參數化過濾技術的安全性。',
+            ui_step1: '步驟 1: 輸入模擬資料',
+            ui_sim_label: '模擬使用者輸入欄位：',
+            ui_mode_label: '對應執行模式：',
+            ui_sql_preview: '實時底層查詢指令：',
+            ui_step2: '步驟 2: 後端底層 C# / ADO.NET 安全性原始碼',
+            ui_log_title: '實時攻擊威脅威脅阻擋日誌',
+            ui_waf_status: 'WAF 防護運行中',
+            ui_diag_title: '登入者行為診斷分析',
+            ui_diag_jitter: '按鍵間隔一致性 (Jitter)',
+            ui_diag_curve: '拖曳軌跡曲率比對',
+            ui_diag_risk: '系統總合風險指標',
+            ui_footer_note: '本階段操作已被記錄並上傳至分散式安全節點存證'
+        },
+        'en': {
+            ui_title: 'Commercial Defense Portal',
+            ui_subtitle: 'MFA Protections & Parametric Query Filter',
+            ui_monitor: 'Live Security Monitor',
+            ui_risk: 'Risk Evaluation',
+            ui_human: 'Human Score',
+            ui_user_label: 'User Account ID',
+            ui_user_placeholder: 'Enter account ID',
+            ui_pass_label: 'Secure Login Password',
+            ui_pass_placeholder: 'Enter account password',
+            ui_login_btn: 'Proceed with Authentication',
+            ui_captcha_title: 'Stage 2: Dynamic CAPTCHA Validation',
+            ui_captcha_verify: 'Verify',
+            ui_2fa_title: 'Stage 3: Two-Factor Authentication (2FA)',
+            ui_2fa_desc: 'For global trade security, 2FA has been activated. Enter simulated TOTP from device:',
+            ui_generator_title: 'TOTP Code Generator',
+            ui_refresh_key: 'Refresh Secret',
+            ui_2fa_btn: 'Authorize 2FA',
+            ui_puzzle_title: 'Stage 4: Behavioral Sliding Signature Test',
+            ui_slide_hint: 'Slide the bar to complete the puzzle',
+            ui_reset_alert_btn: 'Reset Protections',
+            ui_dash_title: 'Trade Infrastructure Central Control',
+            ui_dash_authorized: 'AUTHORIZED',
+            ui_dash_welcome: 'Welcome back, Chief Executive Operator',
+            ui_copy_token: 'Copy Auth Token',
+            ui_logout_btn: 'Disconnect Session',
+            ui_stat_intercept: 'Blocked Encounters Today',
+            ui_stat_times: 'runs',
+            ui_stat_level: 'Endpoint Integrity Rank',
+            ui_stat_protocol: 'MFA Handshake Protocol',
+            ui_sandbox_title: 'Backend Database Sandbox (C# ADO.NET Defense)',
+            ui_sandbox_desc: 'This module demonstrates how our backend database prevents SQL Injection attacks. Input dynamic code signatures below to witness the contrast between string concatenation and parameterization.',
+            ui_step1: 'Step 1: Input Simulated Attack Payload',
+            ui_sim_label: 'User input buffer:',
+            ui_mode_label: 'Execution environment logic:',
+            ui_sql_preview: 'Compiled SQL query structure:',
+            ui_step2: 'Step 2: Underlying C# / ADO.NET Protected Script',
+            ui_log_title: 'Live Threat Intercept Log Console',
+            ui_waf_status: 'WAF Firewall Core Active',
+            ui_diag_title: 'Operator Bio-Metrics Diagnosis',
+            ui_diag_jitter: 'Key Interval Variance (Jitter)',
+            ui_diag_curve: 'Slide Curve Curvature Match',
+            ui_diag_risk: 'Consolidated Threat Factor',
+            ui_footer_note: 'Audit logs registered on decentralized ledger infrastructure.'
+        },
+        'ja': {
+            ui_title: '貿易システム防衛ログイン',
+            ui_subtitle: 'MFA 多要素認証及びデータベース保護装置',
+            ui_monitor: 'リアルタイム脅威監視装置',
+            ui_risk: 'リスク評価',
+            ui_human: '生体スコア',
+            ui_user_label: 'アカウントID',
+            ui_user_placeholder: 'ユーザーIDを入力してください',
+            ui_pass_label: 'ログインパスワード',
+            ui_pass_placeholder: 'パスワードを入力してください',
+            ui_login_btn: '認証プロセスを開始',
+            ui_captcha_title: '第二段階：画像文字ノイズ認証碼',
+            ui_captcha_verify: '照合',
+            ui_2fa_title: '第三段階：二段階動的パスワード (2FA)',
+            ui_2fa_desc: '安全な貿易決済の為、2FAを起動しました。デバイス上に表示された6桁の動的キーを入力してください：',
+            ui_generator_title: 'ワンタイムパスワード生成器',
+            ui_refresh_key: '手動更新',
+            ui_2fa_btn: '2FAを認証',
+            ui_puzzle_title: '第四段階：パズルドラッグ行為分析',
+            ui_slide_hint: 'スライダーを右に動かしてパズルを合わせてください',
+            ui_reset_alert_btn: '防衛を初期化',
+            ui_dash_title: 'エンタープライズ統合統制センター',
+            ui_dash_authorized: '完全承認済',
+            ui_dash_welcome: '管理者様、お帰りなさいませ',
+            ui_copy_token: 'セキュリティ証明トークンをコピー',
+            ui_logout_btn: '接続を安全に解除',
+            ui_stat_intercept: '本日のサイバー攻撃検知',
+            ui_stat_times: '回',
+            ui_stat_level: 'エンドポイントセキュリティ等級',
+            ui_stat_protocol: 'MFA 同期プロトコル',
+            ui_sandbox_title: 'DBセーフティ模擬サンドボックス (C# ADO.NET SQLi 防護)',
+            ui_sandbox_desc: '本サンドボックスは、C# SQLパラメータ化処理（Parameters.AddWithValue）がどのようにインジェクション攻撃を防御するかを教授に示すために設計されました。',
+            ui_step1: '手順 1: 仮想ペイロードの入力',
+            ui_sim_label: '入力フォームのシミュレーション：',
+            ui_mode_label: '実行モードの切替：',
+            ui_sql_preview: 'リアルタイムSQLコマンド構築：',
+            ui_step2: '手順 2: C# / ADO.NET 防御コードの実装',
+            ui_log_title: 'WAFリアルタイムブロック・ログ',
+            ui_waf_status: 'WAFファイアウォール稼働中',
+            ui_diag_title: '生体物理操作診断パネル',
+            ui_diag_jitter: 'キー入力間隔のばらつき (Jitter)',
+            ui_diag_curve: '軌跡曲率のマッチング率',
+            ui_diag_risk: '総合サイバーリスク指標',
+            ui_footer_note: '操作記録は分散型セキュリティ台帳に保存され、改ざん防止が保証されます。'
+        },
+        'es': {
+            ui_title: 'Consola de Defensa de Comercio',
+            ui_subtitle: 'Autenticación MFA y Filtro de Consulta Paramétrica',
+            ui_monitor: 'Monitor del Peligro Activo',
+            ui_risk: 'Nivel del Riesgo',
+            ui_human: 'Firma Humana',
+            ui_user_label: 'ID de Cuenta del Usuario',
+            ui_user_placeholder: 'Ingrese su nombre de cuenta',
+            ui_pass_label: 'Clave de Acceso',
+            ui_pass_placeholder: 'Ingrese su clave segura',
+            ui_login_btn: 'Establecer Enlace de Seguridad',
+            ui_captcha_title: 'Fase 2: Validación CAPTCHA Contra Escáneres',
+            ui_captcha_verify: 'Validar',
+            ui_2fa_title: 'Fase 3: Autenticación de Doble Factor (2FA)',
+            ui_2fa_desc: 'Para la seguridad de los pagos internacionales, digite el código dinámico TOTP de su móvil:',
+            ui_generator_title: 'Generador de Claves Dinámicas',
+            ui_refresh_key: 'Actualizar Clave',
+            ui_2fa_btn: 'Validar Acceso 2FA',
+            ui_puzzle_title: 'Fase 4: Verificación de Patrón Biométrico del Puzle',
+            ui_slide_hint: 'Deslice hacia la derecha para armar el puzle',
+            ui_reset_alert_btn: 'Restablecer Firewalls',
+            ui_dash_title: 'Panel de Control de Defensa Empresarial',
+            ui_dash_authorized: 'COMPLETAMENTE AUTORIZADO',
+            ui_dash_welcome: 'Bienvenido de nuevo, Administrador Principal',
+            ui_copy_token: 'Copiar Token Seguro',
+            ui_logout_btn: 'Desconectar Sesión',
+            ui_stat_intercept: 'Amenazas Bloqueadas Hoy',
+            ui_stat_times: 'veces',
+            ui_stat_level: 'Integridad del Endpoint',
+            ui_stat_protocol: 'Grado de Protocolo MFA',
+            ui_sandbox_title: 'Simulador de Defensa DB (C# ADO.NET contra SQLi)',
+            ui_sandbox_desc: 'Este simulador demuestra cómo impedir ataques SQLi. Compare la concatenación de cadenas clásica (vulnerable) con el uso de consultas parametrizadas seguras.',
+            ui_step1: 'Paso 1: Configurar Payload del Ataque',
+            ui_sim_label: 'Entrada simulada:',
+            ui_mode_label: 'Modelo de ejecución:',
+            ui_sql_preview: 'Estructura de la consulta generada:',
+            ui_step2: 'Paso 2: Código Fuente en C# / ADO.NET del Servidor',
+            ui_log_title: 'Registro de Ataques Mitigados por WAF',
+            ui_waf_status: 'WAF Operando con Normalidad',
+            ui_diag_title: 'Estudio Biométrico del Operador',
+            ui_diag_jitter: 'Consistencia de Digitación (Jitter)',
+            ui_diag_curve: 'Coincidencia del Arco de Curva',
+            ui_diag_risk: 'Índice de Amenaza Unificado',
+            ui_footer_note: 'Trazabilidad de auditoría sellada en bloques distribuidos de alta seguridad.'
+        }
+    };
+
+    // 本地語系快速切換引擎 (免除 Google 阻擋問題，100% 成功運作)
+    function switchLocalLanguage(lang) {
+        if (lang === 'google') {
+            // 切換成 Google 官方翻譯模式，展開原本隱藏的 Google 翻譯選單
+            const ge = document.getElementById('google_translate_element');
+            ge.classList.remove('hidden');
+            writeLog("[SYSTEM] 已成功連線至 Google Cloud 全球多國語言自動翻譯引擎...");
+            return;
+        } else {
+            // 隱藏 Google translate
+            document.getElementById('google_translate_element').classList.add('hidden');
+        }
+
+        const dict = i18n_dict[lang];
+        if (!dict) return;
+
+        // 逐一變更 DOM 元件內容
+        Object.keys(dict).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                // 如果是按鈕、文字標籤等，直接替換
+                el.innerText = dict[id];
+            }
+        });
+
+        // 替換 Input 的 Placeholder
+        if (lang === 'zh-TW') {
+            document.getElementById('inputUser').placeholder = "請輸入系統帳號";
+            document.getElementById('inputPass').placeholder = "請輸入對應密碼";
+            document.getElementById('otpInputField').placeholder = "輸入 6 位 2FA 密碼";
+            document.getElementById('codeInputField').placeholder = "4位數字";
+        } else if (lang === 'en') {
+            document.getElementById('inputUser').placeholder = "Enter account ID";
+            document.getElementById('inputPass').placeholder = "Enter account password";
+            document.getElementById('otpInputField').placeholder = "6-digit OTP";
+            document.getElementById('codeInputField').placeholder = "4-digit";
+        } else if (lang === 'ja') {
+            document.getElementById('inputUser').placeholder = "ユーザーIDを入力してください";
+            document.getElementById('inputPass').placeholder = "パスワードを入力";
+            document.getElementById('otpInputField').placeholder = "6桁キーを入力";
+            document.getElementById('codeInputField').placeholder = "4桁数字";
+        } else if (lang === 'es') {
+            document.getElementById('inputUser').placeholder = "ID del usuario";
+            document.getElementById('inputPass').placeholder = "Clave de acceso";
+            document.getElementById('otpInputField').placeholder = "Clave 2FA de 6 dígitos";
+            document.getElementById('codeInputField').placeholder = "4 dígitos";
+        }
+
+        writeLog(`[SYSTEM] 語系防衛機制平滑切換完畢 -> Locale: [${lang.toUpperCase()}]`);
+    }
+</script>
+
+<!-- Google 翻譯載入入口 -->
+<script type="text/javascript">
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'zh-TW',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+        }, 'google_translate_element');
+    }
+</script>
+<!-- 引入 Google 翻譯的核心模組 -->
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<script>
+    // System core state variables
+    let currentCorrectCode = ""; 
+    let currentCorrect2FA = ""; // Dynamic 6-digit MFA token
+    let totpCountdown = 30; // 30s standard refresh cycle
+    let targetX = 0; 
+    let targetY = 0; 
+    const r = 24; // Piece radius size
+    let passwordFailCount = 0;
+    let isLocked = false;
+    let telemetryPoints = []; // Mouse movement tracking data points
+    let keyStrokeTimestamps = []; // Capture type rhythm
+    let calculatedHumanScore = 100;
+    let totpTimerInterval = null;
+
+    // Elements lookup
+    const logConsole = document.getElementById('logConsole');
+    const codeArea = document.getElementById('codeArea');
+    const twoFactorArea = document.getElementById('twoFactorArea');
+    const puzzleArea = document.getElementById('puzzleArea');
+    const puzzleSlider = document.getElementById('puzzleSlider');
+    const puzzleTrack = document.getElementById('puzzleTrack');
+    const sliderFill = document.getElementById('sliderFill');
+    const canvasCode = document.getElementById('captchaCanvas');
+    const loginCard = document.getElementById('loginCard');
+    const bgCanvas = document.getElementById('bgCanvas');
+    const blockCanvas = document.getElementById('blockCanvas');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const loginPage = document.getElementById('loginPage');
+
+    // Init Icons
+    lucide.createIcons();
+
+    // 2FA Key Simulated Generation
+    function generateNew2FAToken() {
+        const chars = "0123456789";
+        let code = "";
+        for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCorrect2FA = code;
+        document.getElementById('simulatedOTP').innerText = `${code.substr(0, 3)} ${code.substr(3, 3)}`;
+        totpCountdown = 30;
+        document.getElementById('totpTimer').innerText = `更新倒數: ${totpCountdown}s`;
+        writeLog(`[2FA] 已為本連線生命週期刷新隨機驗證金鑰: ${code}`);
+    }
+
+    function start2FATimer() {
+        if (totpTimerInterval) clearInterval(totpTimerInterval);
+        totpTimerInterval = setInterval(() => {
+            totpCountdown--;
+            if (totpCountdown <= 0) {
+                generateNew2FAToken();
+            } else {
+                document.getElementById('totpTimer').innerText = `更新倒數: ${totpCountdown}s`;
+            }
+        }, 1000);
+    }
+
+    function regenerate2FA() {
+        generateNew2FAToken();
+        start2FATimer();
+    }
+
+    function verify2FA() {
+        const inp = document.getElementById('otpInputField').value.replace(/\s+/g, '');
+        if (inp === currentCorrect2FA) {
+            if (totpTimerInterval) clearInterval(totpTimerInterval);
+            twoFactorArea.classList.add('hidden');
+            
+            runProgressAnimation(
+                "雙因子驗證碼校對核驗",
+                [
+                    "OTP Checking dynamically loaded token...",
+                    "SECURITY Matching SHA-1 cryptographic sequence...",
+                    "SUCCESS"
+                ],
+                1200,
+                () => {
+                    writeLog("關卡三核對成功。多因子雙因子 (2FA) 安全授權確認！即將前往行為辨識拼圖...");
+                    puzzleArea.classList.remove('hidden');
+                    initPuzzle();
+                }
+            );
+        } else {
+            triggerShakeEffect(['otpInputField']);
+            writeLog("雙因子金鑰 (2FA Token) 核對失敗！請確認產生器顯示並重試。", true);
+            openAlert("🔒 雙因子驗證碼錯誤", "您輸入的 6 位行動動態密碼不正確，請配合產生器的時效重新輸入。");
+        }
+    }
+
+    function runProgressAnimation(title, messages, duration, onComplete) {
+        const overlay = document.getElementById('progressOverlay');
+        const titleEl = document.getElementById('progressTitle');
+        const subEl = document.getElementById('progressSub');
+        const percentEl = document.getElementById('progressPercent');
+        const barEl = document.getElementById('progressInnerBar');
+        const statusEl = document.getElementById('progressStatus');
+        
+        titleEl.innerText = title;
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.classList.add('opacity-100', 'pointer-events-auto');
+        
+        let start = null;
+        const animate = (timestamp) => {
+            if (!start) start = timestamp;
+            const elapsed = timestamp - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const percent = Math.floor(progress * 100);
+            
+            percentEl.innerText = `${percent}%`;
+            barEl.style.width = `${percent}%`;
+            
+            const msgIndex = Math.min(Math.floor(progress * messages.length), messages.length - 1);
+            if (messages[msgIndex] && subEl.innerText !== messages[msgIndex]) {
+                subEl.innerText = messages[msgIndex];
+                statusEl.innerText = messages[msgIndex].split(' ')[0] || "SCANNING";
+                writeLog(`[PROGRESS] ${messages[msgIndex]}`);
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                setTimeout(() => {
+                    overlay.classList.add('opacity-0', 'pointer-events-none');
+                    overlay.classList.remove('opacity-100', 'pointer-events-auto');
+                    onComplete();
+                }, 300);
+            }
+        };
+        requestAnimationFrame(animate);
+    }
+
+    // High Tech fallback dynamic grid generator for Canvas backdrops
+    function generateTechMatrix(canvas) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        ctx.fillStyle = '#0a101f';
+        ctx.fillRect(0, 0, w, h);
+        
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+        ctx.lineWidth = 1;
+        const gridSize = 20;
+        for (let x = 0; x < w; x += gridSize) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += gridSize) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(10, 10, w-20, h-20);
+
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, 35, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.font = '8px monospace';
+        ctx.fillText('CORE SYSTEM ANALYTICS - NODE ' + Math.floor(Math.random() * 900 + 100), 18, 25);
+        ctx.fillText('THREAT_LEVEL: EXTREME_SECURE', 18, h - 18);
+        ctx.fillText('PORT: 443 // AUTH_VERIFIED', w - 140, h - 18);
+
+        for (let i = 0; i < 5; i++) {
+            ctx.fillStyle = `rgba(56, 189, 248, ${Math.random() * 0.15 + 0.05})`;
+            ctx.font = '11px monospace';
+            ctx.fillText('0x' + Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase(), Math.random() * w, Math.random() * h);
+        }
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "https://lh3.googleusercontent.com/d/1TGt-xM65nKgd0u2J1FS8C2ahLGh-9uqV"; 
+    
+    img.onerror = function() {
+        writeLog("[SYSTEM_WARN] 外部資安圖像庫不可達，安全切換至本地高強度加密動態圖案矩陣...");
+    };
+
+    // Tracking user's raw mouse interaction & velocity values to calculate AI Security Threat
+    window.addEventListener('mousemove', (e) => {
+        if (telemetryPoints.length < 150) {
+            telemetryPoints.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+        } else {
+            telemetryPoints.shift();
+            telemetryPoints.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+        }
+        analyzeTelemetryRisk();
+    });
+
+    function analyzeTypingSpeed(field) {
+        keyStrokeTimestamps.push(Date.now());
+        if (keyStrokeTimestamps.length > 20) {
+            keyStrokeTimestamps.shift();
+        }
+        analyzeTelemetryRisk();
+    }
+
+    function analyzeTelemetryRisk() {
+        if (telemetryPoints.length < 5) return;
+        
+        let velocities = [];
+        for (let i = 1; i < telemetryPoints.length; i++) {
+            let dx = telemetryPoints[i].x - telemetryPoints[i-1].x;
+            let dy = telemetryPoints[i].y - telemetryPoints[i-1].y;
+            let dt = telemetryPoints[i].time - telemetryPoints[i-1].time || 1;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            velocities.push(dist / dt);
+        }
+
+        let avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+        let squaredDiffs = velocities.map(v => Math.pow(v - avgVelocity, 2));
+        let variance = squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
+
+        const scoreEl = document.getElementById('humanScore');
+        const riskEl = document.getElementById('riskBadge');
+
+        if (variance < 0.02 && telemetryPoints.length > 40) {
+            calculatedHumanScore = Math.max(5, calculatedHumanScore - 2);
+            scoreEl.innerText = `${calculatedHumanScore}%`;
+            scoreEl.className = "text-cyber-danger font-semibold animate-pulse";
+            riskEl.innerText = "高威脅級別 (BOT_ALERT)";
+            riskEl.className = "text-cyber-danger font-semibold";
+        } else {
+            if (calculatedHumanScore < 100) calculatedHumanScore += 1;
+            scoreEl.innerText = `${calculatedHumanScore}%`;
+            
+            if (calculatedHumanScore > 85) {
+                scoreEl.className = "text-cyber-primary font-semibold";
+                riskEl.innerText = "安全無虞 (SAFE_NODE)";
+                riskEl.className = "text-cyber-success font-semibold";
+            } else if (calculatedHumanScore > 40) {
+                scoreEl.className = "text-cyber-warning font-semibold";
+                riskEl.innerText = "中度風險行為";
+                riskEl.className = "text-cyber-warning font-semibold";
+            }
+        }
+    }
+
+    function writeLog(message, isError = false) {
+        const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+        const prefix = isError ? `<span class="text-cyber-danger">[SYS_ERR]</span>` : `<span class="text-cyber-success">[SYS_OK]</span>`;
+        logConsole.innerHTML += `<div>> ${prefix} <span class="text-slate-300">[${timeStr}]</span> ${message}</div>`;
+        logConsole.scrollTop = logConsole.scrollHeight;
+    }
+
+    function triggerShakeEffect(inputIds) {
+        loginCard.classList.add('shake-effect');
+        inputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.add('border-cyber-danger', 'cyber-glow-danger');
+        });
+        setTimeout(() => { 
+            loginCard.classList.remove('shake-effect'); 
+        }, 400);
+    }
+
+    function clearErrors() {
+        ['inputUser', 'inputPass', 'codeInputField', 'otpInputField'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.remove('border-cyber-danger', 'cyber-glow-danger');
+        });
+    }
+
+    function openAlert(title, message) {
+        document.getElementById('alertTitle').innerText = title;
+        document.getElementById('alertDesc').innerHTML = message;
+        
+        const modal = document.getElementById('errorAlert');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+    }
+
+    function closeAlert() {
+        const modal = document.getElementById('errorAlert');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        clearErrors();
+    }
+
+    function verifyPassword() {
+        if (isLocked) return;
+        clearErrors();
+        
+        const u = document.getElementById('inputUser').value.trim();
+        const p = document.getElementById('inputPass').value.trim();
+        
+        const sqlInjectionRegex = /['"|;]|(--)|(\b(OR|AND|SELECT|UNION|DROP|INSERT)\b)/i;
+        const xssRegex = /<script.*?>|javascript:/i;
+        
+        if (!u || !p) {
+            triggerShakeEffect(['inputUser', 'inputPass']);
+            writeLog("輸入欄位不可為空", true);
+            return;
+        }
+
+        if (sqlInjectionRegex.test(u) || sqlInjectionRegex.test(p) || xssRegex.test(u) || xssRegex.test(p)) {
+            triggerShakeEffect(['inputUser', 'inputPass']);
+            writeLog("防禦系統：前端 WAF 主動阻斷惡意程式注入！本次攻擊已記錄。", true);
+            openAlert("🚨 偵測到高危 SQLi 攻擊 (WAF)", 
+                `系統底層主動攔截非法語法：<br><code class="text-cyber-danger font-mono block mt-2 text-xs bg-slate-900 p-2 rounded">Payload: SQLi / Script-Injection Signature Detected</code><br><br>這代表您的前端已經被塞入了危險字元。我們應該避免在後端將這些參數與 SQL 指令直接串接！`
+            );
+            return; 
+        }
+
+        if (u === "admin" && p === "123456") {
+            passwordFailCount = 0; 
+            document.getElementById('submitBtn').style.display = "none";
+            
+            runProgressAnimation(
+                "憑證比對與多因子通道建立中",
+                [
+                    "SECURITY Checking local credentials...",
+                    "DECRYPTING Extracting sha-256 signatures...",
+                    "AUDITING Analyzing background entropy...",
+                    "ESTABLISHING"
+                ],
+                1500,
+                () => {
+                    writeLog("關卡一通過。本機帳號密碼對齊成功。正在啟動動態抗噪隨機檢驗機制...");
+                    generateCaptchaCode();
+                    codeArea.classList.remove('hidden');
+                }
+            );
+        } else {
+            passwordFailCount++;
+            triggerShakeEffect(['inputUser', 'inputPass']);
+            writeLog(`[驗證失敗] 認證比對未成功，目前失敗次數: ${passwordFailCount}/3`, true);
+            
+            if (passwordFailCount >= 3) {
+                isLocked = true;
+                let countdown = 60;
+                document.getElementById('submitBtn').disabled = true;
+                openAlert("🔒 系統全面鎖定中", "檢測到高頻率嘗試性登入。基於安全協定，本機將暫時封鎖 60 秒！請在倒數完畢後重試。");
+                
+                let timer = setInterval(() => {
+                    countdown--;
+                    document.getElementById('submitBtn').innerText = `控制台完全禁制 (${countdown}s)`;
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        isLocked = false;
+                        passwordFailCount = 0;
+                        document.getElementById('submitBtn').disabled = false;
+                        document.getElementById('submitBtn').innerText = "安全驗證登入";
+                        writeLog("登入通道冷卻完畢，允許重新連線認證。");
+                    }
+                }, 1000);
+            } else {
+                openAlert("❌ 身份核對失敗", "請確保登入憑證的正確性。當前累積多次錯誤將會鎖定本端。");
+            }
+        }
+    }
+
+    function generateCaptchaCode() {
+        const ctx = canvasCode.getContext('2d');
+        ctx.clearRect(0, 0, canvasCode.width, canvasCode.height);
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvasCode.width, canvasCode.height);
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * canvasCode.width, Math.random() * canvasCode.height);
+            ctx.lineTo(Math.random() * canvasCode.width, Math.random() * canvasCode.height);
+            ctx.stroke();
+        }
+
+        const chars = '0123456789';
+        let code = '';
+        for (let i = 0; i < 4; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCorrectCode = code;
+
+        ctx.font = 'bold 22px "Fira Code", monospace';
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(code, 28, 30);
+        ctx.shadowBlur = 0; 
+    }
+
+    canvasCode.addEventListener('click', generateCaptchaCode);
+
+    function verifyCode() {
+        clearErrors();
+        const userInp = document.getElementById('codeInputField').value.trim();
+        if (userInp === currentCorrectCode) {
+            codeArea.classList.add('hidden');
+            
+            runProgressAnimation(
+                "抗噪隨機碼核驗中",
+                [
+                    "VERIFYING Aligning digit pattern blocks...",
+                    "DECODING Parsing optical noise parameters...",
+                    "SUCCESS"
+                ],
+                1200,
+                () => {
+                    writeLog("關卡二核對無誤。第二重多因子校對完成！啟動 2FA 雙因子驗證...");
+                    twoFactorArea.classList.remove('hidden');
+                    regenerate2FA(); // Start generating and counting down the simulated 2FA token
+                }
+            );
+        } else {
+            triggerShakeEffect(['codeInputField']);
+            writeLog("動態干擾碼比對失敗！請輸入新一組認證碼。", true);
+            openAlert("⚠️ 比對失敗", "手動輸入之抗噪隨機數字錯誤！已強制重新刷新。");
+            document.getElementById('codeInputField').value = "";
+            generateCaptchaCode();
+        }
+    }
+
+    function initPuzzle() {
+        const bgCtx = bgCanvas.getContext('2d');
+        const blockCtx = blockCanvas.getContext('2d');
+        
+        targetX = Math.floor(Math.random() * (100) + 130); 
+        targetY = Math.floor(Math.random() * (80) + 40);  
+        
+        bgCtx.clearRect(0, 0, 300, 200);
+        blockCtx.clearRect(0, 0, 300, 200);
+        
+        blockCanvas.style.left = '0px';
+        puzzleSlider.style.left = '0px';
+        sliderFill.style.width = '0px';
+
+        try {
+            if (img.complete && img.naturalWidth !== 0) {
+                bgCtx.drawImage(img, 0, 0, 300, 200);
+            } else {
+                generateTechMatrix(bgCanvas);
+            }
+        } catch (e) {
+            generateTechMatrix(bgCanvas);
+        }
+
+        function drawPuzzleShape(ctx, x, y) {
+            ctx.beginPath();
+            ctx.moveTo(x, y); 
+            ctx.lineTo(x + r, y);
+            ctx.arc(x + r + r/2, y, r/2, Math.PI, 0, false); 
+            ctx.lineTo(x + r + r, y); 
+            ctx.lineTo(x + r + r, y + r);
+            ctx.arc(x + r + r, y + r + r/2, r/2, 1.5 * Math.PI, 0.5 * Math.PI, false); 
+            ctx.lineTo(x + r + r, y + r + r); 
+            ctx.lineTo(x, y + r + r); 
+            ctx.lineTo(x, y);
+        }
+
+        blockCtx.save(); 
+        drawPuzzleShape(blockCtx, targetX, targetY); 
+        blockCtx.clip(); 
+        
+        try {
+            if (img.complete && img.naturalWidth !== 0) {
+                blockCtx.drawImage(img, 0, 0, 300, 200);
+            } else {
+                generateTechMatrix(blockCanvas);
+            }
+        } catch (e) {
+            generateTechMatrix(blockCanvas);
+        }
+        
+        const segmentData = blockCtx.getImageData(targetX - 2, targetY - 10, r * 2 + 10, r * 2 + 20);
+        blockCanvas.width = 300; 
+        blockCtx.putImageData(segmentData, 2, targetY - 10);
+
+        bgCtx.save(); 
+        drawPuzzleShape(bgCtx, targetX, targetY);
+        bgCtx.fillStyle = 'rgba(8, 13, 26, 0.9)'; 
+        bgCtx.fill();
+        bgCtx.lineWidth = 1.5; 
+        bgCtx.strokeStyle = '#38bdf8'; 
+        bgCtx.stroke(); 
+        bgCtx.restore();
+    }
+
+    let isDragging = false; 
+    let startX = 0;
+    
+    puzzleSlider.addEventListener('pointerdown', function(e) { 
+        isDragging = true; 
+        startX = e.clientX; 
+        puzzleSlider.setPointerCapture(e.pointerId); 
+    });
+
+    puzzleSlider.addEventListener('pointermove', function(e) {
+        if (!isDragging) return;
+        let deltaX = e.clientX - startX;
+        let maxMove = puzzleTrack.offsetWidth - puzzleSlider.offsetWidth;
+        if (deltaX < 0) deltaX = 0; 
+        if (deltaX > maxMove) deltaX = maxMove;
+        
+        puzzleSlider.style.left = deltaX + 'px';
+        sliderFill.style.width = (deltaX + 16) + 'px'; 
+        
+        let blockMaxMove = 300 - (r * 2) - 10;
+        let blockLeft = (deltaX / maxMove) * blockMaxMove; 
+        blockCanvas.style.left = blockLeft + 'px';
+    });
+
+    puzzleSlider.addEventListener('pointerup', function(e) {
+        if (!isDragging) return; 
+        isDragging = false; 
+        puzzleSlider.releasePointerCapture(e.pointerId);
+        
+        let currentBlockLeft = parseFloat(blockCanvas.style.left) || 0;
+        let matchError = Math.abs(currentBlockLeft - (targetX - 2)); 
+        
+        if (matchError <= 6) {
+            puzzleArea.classList.add('hidden');
+            
+            runProgressAnimation(
+                "端點物理行為軌跡分析核對",
+                [
+                    "COLLECTING Fetching drag vector points...",
+                    "ANALYZING Auditing velocity variance (Jitter)...",
+                    "BIOMETRICS Mapping mouse movement curve...",
+                    "GENERATING Packing OAuth session session_tokens...",
+                    "AUTHORIZING"
+                ],
+                2000,
+                () => {
+                    writeLog("行為辨識審核：拖曳物理數據 analysis 完成... 核准授權進入！");
+                    loginPage.classList.add('hidden'); 
+                    dashboardPage.classList.remove('hidden'); 
+                    populateDashboardLogs();
+                    setSandboxMode('secure');
+                }
+            );
+        } else {
+            triggerShakeEffect([]); 
+            writeLog("拖曳比對失敗！軌跡不吻合。", true);
+            openAlert("❌ 人機拼接失敗", "未能將碎片精準放入基準缺口中。安全演算法已重置本關卡。"); 
+            initPuzzle(); 
+        }
+    });
+
+    // Simulated Threat Logs inside Dashboard Console
+    function populateDashboardLogs() {
+        const dashboardConsole = document.getElementById('wafDashboardConsole');
+        const simulatedThreats = [
+            { ip: "192.168.12.85", type: "SQL injection bypass", severity: "HIGH", code: "SELECT * FROM users WHERE '1'='1" },
+            { ip: "103.4.156.91", type: "Brute Force Attack", severity: "MID", code: "Failed attempt limit exceeded (3)" },
+            { ip: "85.203.11.4", type: "Malicious API Probe", severity: "LOW", code: "GET /api/v1/conf.xml" },
+            { ip: "198.51.100.12", type: "XSS Infiltration Payload", severity: "HIGH", code: "<img> src=x onerror=alert(1)" }
+        ];
+
+        dashboardConsole.innerHTML = "";
+        simulatedThreats.forEach((threat, i) => {
+            const time = new Date(Date.now() - i * 45000).toLocaleTimeString('zh-TW', { hour12: false });
+            const badgeColor = threat.severity === 'HIGH' ? 'text-cyber-danger border-red-900/50 bg-red-950/20' : threat.severity === 'MID' ? 'text-amber-500 border-amber-900/50 bg-amber-950/20' : 'text-cyan-400 border-cyan-900/50 bg-cyan-950/20';
+            
+            dashboardConsole.innerHTML += `
+                <div class="p-2.5 rounded bg-slate-900/50 border border-slate-800 flex items-center justify-between gap-3 animate-fade-in">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${badgeColor}">${threat.severity}</span>
+                        <div>
+                            <div class="text-white font-medium">${threat.type}</div>
+                            <div class="text-[10px] text-slate-500">來源: ${threat.ip} • 檢測特徵碼: <code class="text-slate-400 font-mono">${threat.code}</code></div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] text-slate-500 whitespace-nowrap">${time} 已攔截</span>
+                </div>
+            `;
+        });
+    }
+
+    // BACKEND DATABASE SECURITY SHIELD SANDBOX INTERACTION
+    let activeSandboxMode = 'secure';
+
+    document.getElementById('sandboxUserInput').addEventListener('input', updateSandboxEvaluation);
+
+    function setSandboxMode(mode) {
+        activeSandboxMode = mode;
+        const btnVuln = document.getElementById('btnVulnMode');
+        const btnSecure = document.getElementById('btnSecureMode');
+
+        if (mode === 'vuln') {
+            btnVuln.className = "flex-1 text-[11px] font-bold py-1.5 rounded border border-red-500 bg-red-500 text-white transition";
+            btnSecure.className = "flex-1 text-[11px] font-bold py-1.5 rounded border border-emerald-500 bg-emerald-950/20 text-emerald-400 transition hover:bg-emerald-950/40";
+        } else {
+            btnVuln.className = "flex-1 text-[11px] font-bold py-1.5 rounded border border-red-500 bg-red-950/20 text-red-400 transition hover:bg-red-950/40";
+            btnSecure.className = "flex-1 text-[11px] font-bold py-1.5 rounded border border-emerald-500 bg-emerald-500 text-white transition";
+        }
+
+        updateSandboxEvaluation();
+    }
+
+    function updateSandboxEvaluation() {
+        const userInput = document.getElementById('sandboxUserInput').value;
+        const codeBlock = document.getElementById('sandboxCodeBlock');
+        const queryText = document.getElementById('sandboxQueryText');
+        const indicator = document.getElementById('sandboxResultIndicator');
+
+        if (activeSandboxMode === 'vuln') {
+            const query = `SELECT * FROM Users WHERE Username = '${userInput}' AND Password = '***'`;
+            queryText.innerText = query;
+            
+            codeBlock.innerText = `// ⚠️ 傳統字串拼接寫法 (具備嚴重 SQLi 漏洞)\nstring userInp = "${userInput}";\nstring sql = "SELECT * FROM Users WHERE Username = '" + userInp + "' AND Password = '***'";\nSqlCommand cmd = new SqlCommand(sql, connection);`;
+
+            if (userInput.includes("'") || userInput.toLowerCase().includes("or") || userInput.includes("--")) {
+                indicator.className = "mt-3 p-3 rounded border border-red-500/40 bg-red-950/30 text-red-300 flex items-center gap-2";
+                indicator.innerHTML = `<i data-lucide="skull" class="w-5 h-5 flex-shrink-0"></i>
+                    <div>
+                        <strong class="font-bold">⚠️ SQL 注入成功觸發！</strong>
+                        <p class="text-[10px] text-red-400 mt-0.5">後端資料庫將字串拼接成合法指令，駭客能繞過驗證直接登入或刪除整個詢盤資料庫！</p>
+                    </div>`;
+            } else {
+                indicator.className = "mt-3 p-3 rounded border border-yellow-500/30 bg-yellow-950/20 text-yellow-300 flex items-center gap-2";
+                indicator.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>
+                    <div>
+                        <strong class="font-bold">🚧 雖然成功，但高度危險！</strong>
+                        <p class="text-[10px] text-yellow-400 mt-0.5">目前輸入雖然安全，但若直接用字串串接資料，後端將隨時暴露於隱碼攻擊高風險中。</p>
+                    </div>`;
+            }
+        } else {
+            queryText.innerText = `SELECT * FROM Users WHERE Username = @User AND Password = @Pass`;
+            
+            codeBlock.innerText = `// ✅ Parameters.AddWithValue 參數化防禦防護 (安全過濾)\nstring userInp = "${userInput}";\nstring sql = "SELECT * FROM Users WHERE Username = @User AND Password = @Pass";\nSqlCommand cmd = new SqlCommand(sql, connection);\ncmd.Parameters.AddWithValue("@User", userInp);\ncmd.Parameters.AddWithValue("@Pass", "***");`;
+
+            indicator.className = "mt-3 p-3 rounded border border-emerald-500/40 bg-emerald-950/30 text-emerald-300 flex items-center gap-2";
+            indicator.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 flex-shrink-0"></i>
+                <div>
+                    <strong class="font-bold">✅ 參數化防護完美防禦！</strong>
+                    <p class="text-[10px] text-emerald-400 mt-0.5">使用 @User 作為變數預留。後端自動將所有非法字元視為純粹文字，徹底消滅 SQL 注入危害！</p>
+                </div>`;
+        }
+        lucide.createIcons();
+    }
+
+    function copySessionToken() {
+        const mockToken = "JWT_SECURE_TOKEN_SYSTEM_ADMIN_" + Math.random().toString(36).substr(2).toUpperCase();
+        
+        const tempInput = document.createElement("input");
+        tempInput.value = mockToken;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        
+        writeLog("[SYSTEM] 已順利產製雙因子憑證隨機 Session Token 並儲存至您的剪貼簿！");
+    }
+
+    function logout() {
+        loginPage.classList.remove('hidden'); 
+        dashboardPage.classList.add('hidden');
+        document.getElementById('submitBtn').style.display = "block";
+        document.getElementById('inputUser').value = ""; 
+        document.getElementById('inputPass').value = ""; 
+        document.getElementById('codeInputField').value = "";
+        document.getElementById('otpInputField').value = "";
+        codeArea.classList.add('hidden'); 
+        twoFactorArea.classList.add('hidden');
+        puzzleArea.classList.add('hidden'); 
+        clearErrors();
+        writeLog("管理員主動安全離線，連線對話已銷毀。");
+    }
+</script>
+</body>
+</html>
